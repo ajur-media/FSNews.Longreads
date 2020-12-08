@@ -1,0 +1,29 @@
+{
+    "name": "ajur-media/steamboatengine.longreads",
+    "description": "Longreads module for Steamboat Engine (agnostic)",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Wombat",
+            "email": "vim@fontanka.ru"
+        }
+    ],
+    "config": {
+        "optimize-autoloader": true,
+        "vendor-dir": "vendor",
+        "platform-check": false
+    },
+    "require": {
+        "ext-pdo": "*",
+        "psr/log": "^1.1",
+        "ext-json": "*",
+        "karelwintersky/arris.helpers": "^0.2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "SteamboatEngine\\"           : ["interfaces", "sources"]
+        }
+    }
+
+}
