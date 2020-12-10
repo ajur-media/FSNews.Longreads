@@ -286,10 +286,11 @@ class Longreads implements LongreadsInterface
     
             if ($count > 0) {
                 $state = 'update';
-                $this->logger->debug('Лонгрид уже найден в базе, выполняется обновление информации', [ $dataset['id'] ]);
+                $this->logger->debug('Обновляем информацию о лонгриде в БД', [ $dataset['id'] ]);
                 $sql = DB::makeReplaceQuery('longreads', $dataset);
             } else {
                 $state = 'ok';
+                $this->logger->debug('Добавляем информацию о лонгриде в БД', [ $dataset['id'] ]);
                 $sql = DB::makeInsertQuery('longreads', $dataset);
             }
     
@@ -297,7 +298,10 @@ class Longreads implements LongreadsInterface
             $this->logger->debug('PDO SQL Dataset: ', [ $dataset ]);
     
             $sth = $this->pdo->prepare($sql);
-            $sth->execute($dataset);
+            
+            $sql_status = $sth->execute($dataset);
+            
+            $this->logger->debug('Статус обновления/добавления лонгрида: ', [ $sql_status ]);
     
         } catch (PDOException $e) {
             $this->logger->debug('PDO Error, bad SQL request', [ $e->getMessage(), $sql, $dataset ]);
@@ -307,6 +311,7 @@ class Longreads implements LongreadsInterface
             $this->logger->debug('Ошибка', [$e->getMessage()]);
             return $e->getMessage();
         }
+        
         return $state;
     }
     
