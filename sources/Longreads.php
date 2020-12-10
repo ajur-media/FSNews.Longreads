@@ -450,5 +450,6 @@ class Longreads implements LongreadsInterface
         return json_decode($response);
     }
     
-    
 }
+
+# -eof-

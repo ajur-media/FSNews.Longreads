@@ -88,3 +88,5 @@ interface LongreadsInterface
     public function fetchPagesList();
     
 }
+
+# -eof-
