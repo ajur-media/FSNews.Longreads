@@ -270,7 +270,7 @@ class Longreads implements LongreadsInterface
                 throw new Exception('Нет данных для добавления');
             
             // mapping POST data to DATASET
-            foreach ($_POST['page'] as $key => $value) {
+            foreach ($page as $key => $value) {
                 if (!in_array($key, $valid_fields)) {
                     continue 1;
                 }
