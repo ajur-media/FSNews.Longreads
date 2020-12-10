@@ -23,6 +23,7 @@ interface LongreadsInterface
     
     /**
      * Получить список всех сохраненных лонгридов из БД
+     * @todo: rename
      *
      * @param string $order_status
      * @param string $order_date
@@ -32,6 +33,7 @@ interface LongreadsInterface
     
     /**
      * Получить конкретный лонгрид из БД по ID
+     * @todo: rename
      *
      * @param $id
      * @return bool|mixed
@@ -50,7 +52,8 @@ interface LongreadsInterface
     public function import($id, $folder = null, $import_mode = 'update');
     
     /**
-     * Добавить лонгрид (?)
+     * Добавляем информацию о лонгриде в БД
+     * @todo: rename
      *
      * @param null $page
      * @return mixed
@@ -59,6 +62,7 @@ interface LongreadsInterface
     
     /**
      * Удалить импортированный лонгрид
+     * @todo: rename
      *
      * @param $id
      * @return mixed
@@ -67,11 +71,20 @@ interface LongreadsInterface
     
     /**
      * Изменить настройки видимости лонгрида
+     * @todo: rename
      *
      * @param $id
      * @param string $new_state
      * @return string
      */
     public function itemToggleVisibility($id, $new_state = 'hide');
+    
+    /**
+     * Возвращает список опубликованных лонгридов на Тильде
+     * @todo: rename
+     *
+     * @return array
+     */
+    public function fetchPagesList();
     
 }

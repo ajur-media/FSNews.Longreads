@@ -382,6 +382,50 @@ class Longreads implements LongreadsInterface
         }
     }
     
+    /**
+     * Возвращает список опубликованных лонгридов на Тильде
+     * @todo: rename
+     *
+     * @return array
+     */
+    public function fetchPagesList()
+    {
+        $request = 'getpageslist';
+        $pages_list = [
+            "status"    =>  "FOUND",
+            "count"     =>  0,
+            "result"    =>  []
+        ];
+        $url = "http://api.tildacdn.info/{$this->api_options['version']}/{$request}/"; // http://api.tildacdn.info/v1/getpageslist/
+        
+        foreach ($this->tilda_projects_list as $pid) {
+            $http_request_query = [
+                'publickey' =>  $this->api_options['public_key'],
+                'secretkey' =>  $this->api_options['secret_key'],
+                'projectid' =>  $pid
+            ];
+            $req_url = $url . '?' . http_build_query($http_request_query);
+    
+            $this->logger->debug('Loading new longreads from ', [ $req_url ]);
+            
+            $response = json_decode(file_get_contents($req_url));
+    
+            $this->logger->debug('Response status is:', [ $response->status ]);
+    
+            if ($response->status === "FOUND") {
+                foreach ($response->result as $page_info) {
+                    $pages_list['result'][] = $page_info;
+                }
+            }
+        }
+        $pages_list['count'] = count($pages_list['result']);
+        if ($pages_list['count'] == 0) {
+            $pages_list['status'] = "ERROR";
+        }
+        
+        return $pages_list;
+    }
+    
     /* ================================== PRIVATE METHODS ============================ */
     
     /**
