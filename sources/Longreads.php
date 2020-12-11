@@ -179,6 +179,14 @@ class Longreads implements LongreadsInterface
     
                 $is_directory_created = true;
                 $this->logger->debug("Папка для лонгрида создана");
+            } else {
+                if (!file_exists($path_store)) {
+                    if (!mkdir( $path_store ) && !is_dir( $path_store )) {
+                        throw new RuntimeException( sprintf( 'Папку `%s` создать не удалось', $path_store ) );
+                    }
+                }
+                $is_directory_created = true;
+                $this->logger->debug("Папка для обновляемого лонгрида не существовала, но создана");
             }
     
             $page->html = str_replace('<link rel="stylesheet" href="/', '<link rel="stylesheet" href="', $page->html);
@@ -195,6 +203,8 @@ class Longreads implements LongreadsInterface
             $output = $page->html . "\n";
             
             if ('' !== $this->path_to_footer_template && is_readable($this->path_to_footer_template)) {
+                $output = str_replace([ '</body>', '</html>' ], '', $output);
+                
                 $footer = file_get_contents($this->path_to_footer_template);
                 $output .= str_replace('{$smarty.now|date_format:"%Y"}', date('Y'), $footer) . "\n";
             }
@@ -439,7 +449,6 @@ class Longreads implements LongreadsInterface
      */
     private function tilda_get_fullpage($id)
     {
-        // header('Content-Type: application/json');
         $http_request_query = [
             'publickey' =>  $this->api_options['public_key'],
             'secretkey' =>  $this->api_options['secret_key'],
