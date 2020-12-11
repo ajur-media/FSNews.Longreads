@@ -88,17 +88,17 @@ class Longreads implements LongreadsInterface
         $this->pdo = $pdo;
         $this->logger = $logger;
         
-        $this->api_options['version'] = $options['api.version'] ?: 'v1';
-        $this->api_options['public_key'] = $options['api.public_key'] ?: false;
-        $this->api_options['secret_key'] = $options['api.secret_key'] ?: false;
+        $this->api_options['version'] = $options['api.version'] ?? 'v1';
+        $this->api_options['public_key'] = $options['api.public_key'] ?? false;
+        $this->api_options['secret_key'] = $options['api.secret_key'] ?? false;
         
         $this->path_storage = $options['path.storage'];
-        $this->path_to_favicon = $options['path.favicon'] ?: '';
-        $this->path_to_footer_template = $options['path.footer_template'] ?: '';
+        $this->path_to_favicon = $options['path.favicon'] ?? '';
+        $this->path_to_footer_template = $options['path.footer_template'] ?? '';
         
-        $this->sql_table = $options['sql.table'] ?: 'longreads';
+        $this->sql_table = $options['sql.table'] ?? 'longreads';
         
-        $this->tilda_projects_list = $options['projects'] ?: [];
+        $this->tilda_projects_list = $options['projects'] ?? [];
     }
     
     public function getStoredAll($order_status = 'DESC', $order_date = 'DESC')
