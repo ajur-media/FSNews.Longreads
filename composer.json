@@ -24,6 +24,17 @@
         "psr-4": {
             "SteamboatEngine\\"           : ["interfaces", "sources"]
         }
+    },
+    "extra": {
+        "copy": [
+            {
+                "source": "extra/longreads.js",
+                "target": "frontend/js/admin/longread.js"
+            },
+            {
+                "source": "extra/longreads.tpl",
+                "target": "templates/admin/longreads.tpl"
+            }
+        ]
     }
-
 }

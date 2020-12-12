@@ -156,7 +156,7 @@ class Longreads implements LongreadsInterface
     
             $this->logger->debug("Путь для сохранения лонгрида", [ $path_store ]);
     
-            $export = $this->tilda_get_fullpage($id);
+            $export = $this->getPageFullExport($id);
     
             if (!$export || !isset($export->status) || $export->status !== 'FOUND')
                 throw new Exception('Ошибка при получении данных Tilda API');
@@ -411,7 +411,7 @@ class Longreads implements LongreadsInterface
             "count"     =>  0,
             "result"    =>  []
         ];
-        $url = "http://api.tildacdn.info/{$this->api_options['version']}/{$request}/"; // http://api.tildacdn.info/v1/getpageslist/
+        $url = "http://api.tildacdn.info/{$this->api_options['version']}/getpageslist/"; // http://api.tildacdn.info/v1/getpageslist/
         
         foreach ($this->tilda_projects_list as $pid) {
             $http_request_query = [
@@ -447,7 +447,7 @@ class Longreads implements LongreadsInterface
      * @param $id
      * @return stdClass
      */
-    private function tilda_get_fullpage($id)
+    private function getPageFullExport($id)
     {
         $http_request_query = [
             'publickey' =>  $this->api_options['public_key'],
@@ -457,11 +457,28 @@ class Longreads implements LongreadsInterface
         
         $url  = "http://api.tildacdn.info/{$this->api_options['version']}/getpagefullexport/" . '?' . http_build_query( $http_request_query ) ;
     
-        $this->logger->debug('URL запроса к тильде:', [ $url ]);
-    
-        $response = file_get_contents($url );
-    
-        return json_decode($response);
+        $this->logger->debug('[getPageFullExport] URL запроса к тильде:', [ $url ]);
+        
+        try {
+            $response = file_get_contents($url);
+            
+            if (false === $response) {
+                throw new Exception( "[getPageFullExport] ERROR: Не удалось получить данные с Tilda API" );
+            }
+            
+            $response = json_decode($response);
+            
+            if (false === $response) {
+                throw new Exception( "[getPageFullExport] ERROR: Не удалось json-декодировать данные с Tilda API" );
+            }
+            
+            return $response;
+            
+        } catch (Exception $e) {
+            $this->logger->debug($e->getMessage(), [ $e->getCode(), $url ]);
+            
+            return new stdClass();
+        }
     }
     
 }
