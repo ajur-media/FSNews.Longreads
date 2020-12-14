@@ -22,6 +22,32 @@ interface LongreadsInterface
     public function __construct(PDO $pdo, $options = [], LoggerInterface $logger = null);
     
     /**
+     * Getter
+     * Используется, например, для возврата ассоциированного логгера
+     *
+     * @param $name
+     * @return mixed
+     */
+    public function __get($name);
+    
+    /**
+     * Setter not implemented
+     *
+     * @param $name
+     * @param $value
+     * @return mixed
+     */
+    public function __set($name, $value);
+    
+    /**
+     * ISSET not implemented
+     *
+     * @param $name
+     * @return mixed
+     */
+    public function __isset($name);
+    
+    /**
      * Получить список всех сохраненных лонгридов из БД
      * @todo: rename
      *

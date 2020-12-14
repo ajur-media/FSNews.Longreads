@@ -101,6 +101,21 @@ class Longreads implements LongreadsInterface
         $this->tilda_projects_list = $options['projects'] ?? [];
     }
     
+    public function __get($name)
+    {
+        if ($this->{$name}) return $this->{$name};
+        
+        return null;
+    }
+    
+    public function __set($name, $value)
+    {
+    }
+    
+    public function __isset($name)
+    {
+    }
+    
     public function getStoredAll($order_status = 'DESC', $order_date = 'DESC')
     {
         $order_status = in_array($order_status, [ 'DESC', 'ASC'] ) ? $order_status : 'DESC';
@@ -244,7 +259,7 @@ class Longreads implements LongreadsInterface
                 'folder'    =>  $folder,
                 'id'        =>  $id
             ]);
-    
+            
             $this->logger->debug("Информация по лонгриду сохранена в БД.");
             
         } catch (Exception $e) {
