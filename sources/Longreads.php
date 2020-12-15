@@ -147,6 +147,7 @@ class Longreads implements LongreadsInterface
     public function import($id, $folder = null, $import_mode = 'update')
     {
         $is_directory_created = false;
+        $path_store = '';
         
         $this->logger->debug('Запрошен импорт лонгрида');
         
@@ -238,6 +239,8 @@ class Longreads implements LongreadsInterface
                     $this->logger->debug("Сохраняем ассеты типа {$type}");
             
                     foreach ($page->{$type} as $file) {
+                        $this->logger->debug("Загружаем {$type} ", [ $file ]);
+                        
                         $content = file_get_contents($file->from);
                 
                         if (!$content)
@@ -246,8 +249,9 @@ class Longreads implements LongreadsInterface
                         if (!file_put_contents("{$path_store}/{$file->to}", $content))
                             throw new Exception("Ошибка сохранения файла `{$path_store}/{$file->to}`");
                 
-                        $this->logger->debug("Файл скопирован", [ $file->to , $file->from ]);
+                        $this->logger->debug("Файл {$type} скопирован", [ $file->to , $file->from ]);
                     }
+                    
                     $this->logger->debug("Ассеты типа {$type} сохранены.");
                 }
             } // foreach
@@ -414,9 +418,20 @@ class Longreads implements LongreadsInterface
     
     /**
      * Возвращает список опубликованных лонгридов на Тильде
+     *
+     * возвращается структура
+     * [
+     *  "status" => FOUND|ERROR
+     *  "count" => N
+     *  "data" => [ [] ]
+     * ]
+     *
+     * При преобразовании в JSON требуются опции
+     * `JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE`
+     *
      * @todo: rename
      *
-     * @return array
+     * @return array JSON Decoded array
      */
     public function fetchPagesList()
     {

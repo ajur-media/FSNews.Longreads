@@ -1,3 +1,6 @@
+/**
+ * jQuery required
+ */
 $(function () {
     // Шаблон строки для новой страницы
     var template_pagerow = '\
