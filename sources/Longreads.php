@@ -382,7 +382,7 @@ class Longreads implements LongreadsInterface
                 $this->logger->debug("Удаляем файл {$file}");
                 @unlink($lr_folder . $file);
             }
-    
+            
             if (!rmdir($lr_folder))
                 throw new Exception("Не получилось удалить директорию {$lr_folder}");
     
@@ -390,7 +390,7 @@ class Longreads implements LongreadsInterface
             $sth = $this->pdo->prepare("DELETE FROM {$this->sql_table} WHERE id = :id");
             
             if (false === $sth->execute([ 'id' => $id]))
-                throw new Exception("При удалении лонгрида из БД возникла ошибка, немедленно сообщите администратору код лонгрида: {$id}");
+                throw new Exception("Не удалось удалить лонгрид из базы данных, код лонгрида: {$id}");
     
         } catch (Exception $e) {
             $this->logger->debug("Возникла ошибка при удалении лонгрида: ", [ $e->getMessage() ]);
@@ -408,6 +408,8 @@ class Longreads implements LongreadsInterface
         try {
             if (is_null($id) || $id <= 0)
                 throw new Exception('Не передан ID изменяемого лонгрида');
+            
+            $this->logger->debug("Запрошено изменение видимости лонгрида (id), (новый статус)", [ $id, $new_state ]);
             
             $new_state = in_array($new_state, [ 'hide', 'show' ]) ? $new_state : 'hide';
             $new_state = ($new_state === 'hide') ? -1 : 0;
@@ -455,26 +457,36 @@ class Longreads implements LongreadsInterface
         $url = "http://api.tildacdn.info/{$this->api_options['version']}/getpageslist/"; // http://api.tildacdn.info/v1/getpageslist/
         
         foreach ($this->tilda_projects_list as $pid) {
+            $pid_loaded_count = 0;
+            
             $http_request_query = [
                 'publickey' =>  $this->api_options['public_key'],
                 'secretkey' =>  $this->api_options['secret_key'],
                 'projectid' =>  $pid
             ];
             $req_url = $url . '?' . http_build_query($http_request_query);
+            
+            $this->logger->debug("Запрашиваем список лонгридов в проекте ", [ $pid ]);
     
-            $this->logger->debug('Loading new longreads from ', [ $req_url ]);
+            $this->logger->debug("URL запроса: ", [ $req_url ]);
             
             $response = json_decode(file_get_contents($req_url));
     
-            $this->logger->debug('Response status is:', [ $response->status ]);
+            $this->logger->debug('Статус ответа: ', [ $response->status ]);
     
             if ($response->status === "FOUND") {
                 foreach ($response->result as $page_info) {
                     $pages_list['result'][] = $page_info;
+                    $pid_loaded_count++;
                 }
             }
+            
+            $this->logger->debug("Получено информации о лонгридах: ", [ $pid_loaded_count ]);
         }
         $pages_list['count'] = count($pages_list['result']);
+    
+        $this->logger->debug("Всего получено информации о лонгридах: ", [ $pages_list['count'] ]);
+        
         if ($pages_list['count'] == 0) {
             $pages_list['status'] = "ERROR";
         }
