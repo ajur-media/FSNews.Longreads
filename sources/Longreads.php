@@ -239,7 +239,7 @@ class Longreads implements LongreadsInterface
                     $this->logger->debug("Сохраняем ассеты типа {$type}");
             
                     foreach ($page->{$type} as $file) {
-                        $this->logger->debug("Загружаем {$type} ", [ $file ]);
+                        $this->logger->debug("Загружаем {$type} ", [ $file->from ]);
                         
                         $content = file_get_contents($file->from);
                 
@@ -365,22 +365,32 @@ class Longreads implements LongreadsInterface
                 throw new Exception("Лонгрид с указанным идентификатором не найден в базе данных");
     
             $lr_folder = $this->path_storage . DIRECTORY_SEPARATOR . $longread['folder'] . DIRECTORY_SEPARATOR;
-            $lr_files = array_diff(scandir($lr_folder), [ '.', '..']);
+            
+            if (!is_dir($lr_folder))
+                throw new Exception('Директории с лонгридом не существует. Обратитесь к администратору!');
+            
+            $lr_files = scandir($lr_folder);
     
-            $this->logger->debug("Удаляем файлы...");
+            if ($lr_files === false)
+                throw new Exception('Не удалось прочитать оглавление директории с лонгридом. Обратитесь к администратору');
+            
+            $lr_files = array_diff($lr_files, [ '.', '..']);
+    
+            $this->logger->debug("Удаляем файлы из директории: ", [ $lr_folder ]);
+            
             foreach ($lr_files as $file) {
                 $this->logger->debug("Удаляем файл {$file}");
                 @unlink($lr_folder . $file);
             }
     
             if (!rmdir($lr_folder))
-                throw new Exception("Не получилось удалить каталог {$lr_folder}");
+                throw new Exception("Не получилось удалить директорию {$lr_folder}");
     
             // удаляем запись из базы
             $sth = $this->pdo->prepare("DELETE FROM {$this->sql_table} WHERE id = :id");
-            $sth->execute([ 'id' => $id]);
-    
-    
+            
+            if (false === $sth->execute([ 'id' => $id]))
+                throw new Exception("При удалении лонгрида из БД возникла ошибка, немедленно сообщите администратору код лонгрида: {$id}");
     
         } catch (Exception $e) {
             $this->logger->debug("Возникла ошибка при удалении лонгрида: ", [ $e->getMessage() ]);
@@ -389,6 +399,7 @@ class Longreads implements LongreadsInterface
         }
     
         $this->logger->debug("Лонгрид удалён");
+        
         return 'ok';
     } // delete()
     

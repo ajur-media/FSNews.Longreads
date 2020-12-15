@@ -233,7 +233,6 @@ $(function () {
                 // Если страница уже в БД
 
                 // longreads - глобальная переменная, создается в longreads.tpl
-
                 if (page.id in window.longreads) {
                     // Проверяем дату обновения
                     if (longreads[page.id] !== page.date && $(`#row-${page.id}`).data('status') === 1) {
@@ -268,7 +267,6 @@ $(function () {
                                     .replace('%descr%', page.descr)
                                     .replace('%projectid%', page.projectid)
                             );
-                            init_row_buttons(page.id);
                         } else if (response === 'update') {
                             message( 'Дубль', 'yellow')
                         } else {
@@ -335,59 +333,6 @@ $(function () {
         // init_row_buttons(id);
     });
     bind_rows_buttons_actions();
-
-    /**
-     * Костыльный биндинг вызовов к кнопкам
-     * @deprecated
-     *
-     * @param id
-     */
-    /*function init_row_buttons(id) {
-        let row = $(`#row-${id}`);
-
-        row.find('button.import').click(function (e) {
-            e.preventDefault();
-            hide_buttons(id);
-            let title = row.find('p.pagetitle').text();
-            row.find('.folder').val(transliterate(title));
-            row.find('.import-block').show();
-        });
-
-        row.find('button.update').click(function (e) {
-            e.preventDefault();
-            if (!confirm('Вы уверены что хотите обновить импортированную страницу?')) return;
-            page_import(id, row.find('.folder').val(), true);
-        });
-
-        row.find('button.start').click(function (e) {
-            e.preventDefault();
-            row.find('.import-block').hide();
-            page_import(id, row.find('.folder').val());
-        });
-
-        row.find('button.tohide').click(function (e) {
-            e.preventDefault();
-            page_toggle(id, 'hide')
-        });
-
-        row.find('button.toshow').click(function (e) {
-            e.preventDefault();
-            page_toggle(id, 'show')
-        });
-
-        row.find('button.cancel').click(function (e) {
-            e.preventDefault();
-            row.find('.import-block').hide();
-            show_button(id, 'tohide');
-            show_button(id, 'import');
-        });
-
-        row.find('button.delete').click(function (e) {
-            e.preventDefault();
-            if (!confirm('Вы уверены что хотите удалить импортированную страницу?')) return;
-            page_delete(id);
-        });
-    }*/
 
     /**
      * === BIND row buttons actions ===
