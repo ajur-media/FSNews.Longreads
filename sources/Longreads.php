@@ -302,6 +302,7 @@ class Longreads implements LongreadsInterface
                     'sort'          =>  $page->sort,
                     'published'     =>  $page->published,
                     'fb_title'      =>  $page->fb_title,
+                    'status'        =>  1,
                     // fb_descr, fb_img, meta_title, meta_descr, meta_keywords
                     'filename'      =>  $page->filename
                 ];
