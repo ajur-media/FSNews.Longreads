@@ -98,7 +98,11 @@ class Longreads implements LongreadsInterface
         
         $this->sql_table = $options['sql.table'] ?? 'longreads';
         
-        $this->tilda_projects_list = $options['projects'] ?? [];
+        if (is_array($options['projects'])) {
+            $this->tilda_projects_list = $options['projects'];
+        } elseif (is_string($options['projects'])) {
+            $this->tilda_projects_list = array_map(function ($i) { return (int)$i; }, explode(' ', $options['projects']));
+        }
     }
     
     public function __get($name)
@@ -114,6 +118,11 @@ class Longreads implements LongreadsInterface
     
     public function __isset($name)
     {
+    }
+    
+    public function getProjectsList()
+    {
+        return $this->tilda_projects_list;
     }
     
     public function getStoredAll($order_status = 'DESC', $order_date = 'DESC')
@@ -144,18 +153,24 @@ class Longreads implements LongreadsInterface
         return $sth->fetch();
     }
     
-    public function import($id, $folder = null, $import_mode = 'update')
+    public function import($pageid, $folder = null, $import_mode = 'update')
     {
+        $import_mode = in_array($import_mode, [ 'insert', 'update' ]) ? $import_mode : 'insert';
+        
         $is_directory_created = false;
         $path_store = '';
         
-        $this->logger->debug('Запрошен импорт лонгрида');
+        if ($import_mode == 'update') {
+            $this->logger->debug('Запрошено обновление лонгрида', [ $pageid, $folder ]);
+        } else {
+            $this->logger->debug('Запрошен импорт лонгрида');
+        }
         
         try {
             if (!is_dir($this->path_storage))
                 throw new Exception('Папка для лонгридов не существует. Обратитесь к нашим админам!');
             
-            if (is_null($id))
+            if (is_null($pageid))
                 throw new Exception('Не передан ID импортируемой страницы');
             
             if (is_null($folder))
@@ -163,16 +178,14 @@ class Longreads implements LongreadsInterface
     
             if (!preg_match('/[a-z\d\-\_]+/', $folder))
                 throw new Exception('В имени папки допустимы только латинские символы, цифры, дефис и знак подчеркивания');
-            
-            $import_mode = in_array($import_mode, [ 'insert', 'update' ]) ? $import_mode : 'insert';
     
-            $this->logger->debug("ID: {$id}, папка сохранения: `{$folder}`, режим импорта: `{$import_mode}`");
+            $this->logger->debug("ID: {$pageid}, папка сохранения: `{$folder}`, режим импорта: `{$import_mode}`");
     
             $path_store = $this->path_storage . DIRECTORY_SEPARATOR . $folder;
     
             $this->logger->debug("Путь для сохранения лонгрида", [ $path_store ]);
     
-            $export = $this->getPageFullExport($id);
+            $export = $this->getPageFullExport($pageid);
     
             if (!$export || !isset($export->status) || $export->status !== 'FOUND')
                 throw new Exception('Ошибка при получении данных Tilda API');
@@ -255,15 +268,55 @@ class Longreads implements LongreadsInterface
                     $this->logger->debug("Ассеты типа {$type} сохранены.");
                 }
             } // foreach
-    
-            $sql = "UPDATE `{$this->sql_table}` SET `date` = :date, `status` = 1, `folder` = :folder WHERE `id` = :id ";
-            $sth = $this->pdo->prepare($sql);
-            $sth->execute([
-                'date'      =>  $page->date,
-                'folder'    =>  $folder,
-                'id'        =>  $id
-            ]);
             
+            // теперь проверяем, существует ли в базе импортированных лонгридов такая запись
+            $sql = "SELECT COUNT(*) AS cnt FROM `{$this->sql_table}` WHERE `id` = :id";
+            $sth = $this->pdo->prepare($sql);
+            $sth->execute(['id'        =>  $pageid]);
+            
+            if ($sth->fetchColumn() > 0) {
+                
+                $this->logger->debug('Обновляем информацию о лонгриде в БД... ');
+                
+                $dataset = [
+                    'date'      =>  $page->date,
+                    'status'    =>  1,
+                    'folder'    =>  $folder
+                ];
+                
+                $sql = DB::makeUpdateQuery($this->sql_table, $dataset, "`id` = {$pageid}");
+                
+            } else {
+                
+                $this->logger->debug('Сохраняем информацию о лонгриде в БД... ');
+                
+                $dataset = [
+                    'id'            =>  $pageid,
+                    'projectid'     =>  $page->projectid,
+                    'title'         =>  $page->title,
+                    'descr'         =>  $page->descr,
+                    'img'           =>  $page->img,
+                    'featureimg'    =>  $page->featureimg,
+                    'alias'         =>  $page->alias,
+                    'date'          =>  $page->date,
+                    'sort'          =>  $page->sort,
+                    'published'     =>  $page->published,
+                    'fb_title'      =>  $page->fb_title,
+                    // fb_descr, fb_img, meta_title, meta_descr, meta_keywords
+                    'filename'      =>  $page->filename
+                ];
+    
+                $sql = DB::makeInsertQuery($this->sql_table, $dataset);
+            }
+    
+            $this->logger->debug('PDO SQL Query: ', [ str_replace("\r\n", "", $sql) ]);
+            $this->logger->debug('PDO SQL Dataset: ', [ $dataset ]);
+    
+            $sth = $this->pdo->prepare($sql);
+    
+            if (!$sth->execute($dataset))
+                throw new Exception('Ошибка сохранения/обновления информации о лонгриде в БД');
+    
             $this->logger->debug("Информация по лонгриду сохранена в БД.");
             
         } catch (Exception $e) {
@@ -316,14 +369,14 @@ class Longreads implements LongreadsInterface
             if ($count > 0) {
                 $state = 'update';
                 $this->logger->debug('Обновляем информацию о лонгриде в БД', [ $dataset['id'] ]);
-                $sql = DB::makeReplaceQuery('longreads', $dataset);
+                $sql = DB::makeReplaceQuery($this->sql_table, $dataset);
             } else {
                 $state = 'ok';
                 $this->logger->debug('Добавляем информацию о лонгриде в БД', [ $dataset['id'] ]);
-                $sql = DB::makeInsertQuery('longreads', $dataset);
+                $sql = DB::makeInsertQuery($this->sql_table, $dataset);
             }
     
-            $this->logger->debug('PDO SQL Query: ', [ $sql ]);
+            $this->logger->debug('PDO SQL Query: ', [ str_replace("\r\n", "", $sql) ]);
             $this->logger->debug('PDO SQL Dataset: ', [ $dataset ]);
     
             $sth = $this->pdo->prepare($sql);

@@ -48,6 +48,13 @@ interface LongreadsInterface
     public function __isset($name);
     
     /**
+     * Возвращает список проектов (project_id) как массив целочисленных значений
+     *
+     * @return int[]
+     */
+    public function getProjectsList();
+    
+    /**
      * Получить список всех сохраненных лонгридов из БД
      * @todo: rename
      *
