@@ -18,11 +18,11 @@
         "ext-pdo": "*",
         "psr/log": "^1.1",
         "ext-json": "*",
-        "karelwintersky/arris.helpers": "^0.2.0"
+        "karelwintersky/arris.helpers": "^0.3.0"
     },
     "autoload": {
         "psr-4": {
-            "SteamboatEngine\\"           : ["interfaces", "sources"]
+            "SteamboatEngine\\"             : ["interfaces", "sources"]
         }
     },
     "extra": {
@@ -33,7 +33,7 @@
             },
             {
                 "source": "extra/longreads.tpl",
-                "target": "templates/admin/longreads.tpl"
+                "target": "admin/longreads.tpl"
             }
         ]
     }
