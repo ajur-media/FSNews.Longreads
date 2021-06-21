@@ -18,7 +18,7 @@
         "ext-pdo": "*",
         "psr/log": "^1.1",
         "ext-json": "*",
-        "karelwintersky/arris.helpers": "^0.3.0"
+        "karelwintersky/arris.helpers": "^0.4.0"
     },
     "autoload": {
         "psr-4": {
