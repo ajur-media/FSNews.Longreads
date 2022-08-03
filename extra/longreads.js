@@ -3,7 +3,7 @@
  */
 $(function () {
     // Шаблон строки для новой страницы
-    var template_pagerow = '\
+    let template_pagerow = '\
             <tr id="row-%id%" data-status="0" data-id="%id%" class="new">\
                 <td align="center">%projectid%</td>\
                 <td align="center" class="date">%date%<span class="change"></span></td>\

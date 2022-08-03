@@ -4,7 +4,7 @@
  * Longreads Unit Interface for Steamboat Engine
  */
 
-namespace SteamboatEngine;
+namespace AJUR\FSNews;
 
 use PDO;
 use Psr\Log\LoggerInterface;
@@ -19,7 +19,7 @@ interface LongreadsInterface
      * @param array $options
      * @param LoggerInterface|null $logger
      */
-    public function __construct(PDO $pdo, $options = [], LoggerInterface $logger = null);
+    public function __construct(PDO $pdo, array $options = [], LoggerInterface $logger = null);
     
     /**
      * Getter
@@ -31,8 +31,6 @@ interface LongreadsInterface
     public function __get($name);
     
     /**
-     * Setter not implemented
-     *
      * @param $name
      * @param $value
      * @return mixed
@@ -40,8 +38,6 @@ interface LongreadsInterface
     public function __set($name, $value);
     
     /**
-     * ISSET not implemented
-     *
      * @param $name
      * @return mixed
      */
@@ -56,13 +52,13 @@ interface LongreadsInterface
     
     /**
      * Получить список всех сохраненных лонгридов из БД
-     * @todo: rename
-     *
      * @param string $order_status
      * @param string $order_date
      * @return array
+     * @todo: rename
+     *
      */
-    public function getStoredAll($order_status = 'DESC', $order_date = 'DESC');
+    public function getStoredAll(string $order_status = 'DESC', string $order_date = 'DESC'): array;
     
     /**
      * Получить конкретный лонгрид из БД по ID
@@ -82,7 +78,7 @@ interface LongreadsInterface
      *
      * @return mixed
      */
-    public function import($id, $folder = null, $import_mode = 'update');
+    public function import($id, $folder = null, string $import_mode = 'update');
     
     /**
      * Добавляем информацию о лонгриде в БД

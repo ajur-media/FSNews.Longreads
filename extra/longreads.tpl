@@ -65,14 +65,14 @@
     </table>
 </div>
 <script type="text/javascript">
-    var domain = '{$domain_site_default}';
-    var longreads = {
-    {foreach from=$longreads item=longread}
-    {$longread.id}: '{$longread.date}',
-    {/foreach}
-    }
-    var showhidden = false;
-    var tildapages;
+    const domain = '{$domain_site_default}';
+    let longreads = {
+        {foreach from=$longreads item=longread}
+        {$longread.id}: '{$longread.date}',
+        {/foreach}
+    };
+    let showhidden = false;
+    let tildapages;
 </script>
 <script type="text/javascript" src="/frontend/js/admin/longreads.js"></script>
 <style type="text/css">
