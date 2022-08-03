@@ -19,7 +19,7 @@ interface LongreadsInterface
      * @param array $options
      * @param LoggerInterface|null $logger
      */
-    public function __construct(PDO $pdo, array $options = [], LoggerInterface $logger = null);
+    public function __construct(PDO $pdo, array $options = [], $logger = null);
     
     /**
      * Getter
@@ -107,14 +107,16 @@ interface LongreadsInterface
      * @return string
      */
     public function itemToggleVisibility($id, $new_state = 'hide');
-    
+
     /**
      * Возвращает список опубликованных лонгридов на Тильде
+     * @param null $associative
+     * @return array
+     *
      * @todo: rename
      *
-     * @return array
      */
-    public function fetchPagesList();
+    public function fetchPagesList(): array;
     
 }
 

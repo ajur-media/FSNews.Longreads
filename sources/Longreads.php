@@ -8,6 +8,7 @@ namespace AJUR\FSNews;
 
 use Curl\Curl;
 use PDOException;
+use Psr\Log\NullLogger;
 use RuntimeException;
 use PDO;
 use Psr\Log\LoggerInterface;
@@ -93,7 +94,7 @@ class Longreads implements LongreadsInterface
      */
     private $option_download_client;
 
-    public function __construct(PDO $pdo, array $options = [], LoggerInterface $logger = null)
+    public function __construct(PDO $pdo, array $options = [], $logger = null)
     {
         $this->api_request_types = [
             'getprojectslist'   => '',          // Список проектов
@@ -107,7 +108,7 @@ class Longreads implements LongreadsInterface
         ];
 
         $this->pdo = $pdo;
-        $this->logger = $logger;
+        $this->logger = is_null($logger) ? new NullLogger() : $logger;
 
         $this->api_options['version'] = $options['api.version'] ?? 'v1';
         $this->api_options['public_key'] = $options['api.public_key'] ?? false;
@@ -157,7 +158,7 @@ class Longreads implements LongreadsInterface
         $order_status = in_array($order_status, [ 'DESC', 'ASC'] ) ? $order_status : 'DESC';
         $order_date = in_array($order_date, [ 'DESC', 'ASC' ] ) ? $order_date : 'DESC';
 
-        $sql = vsprintf("SELECT * FROM %1 ORDER BY status %2, date %3", [ $this->sql_table, $order_status, $order_date ]);
+        $sql = vsprintf("SELECT * FROM %s ORDER BY status %s, date %s", [ $this->sql_table, $order_status, $order_date ]);
 
         $sth = $this->pdo->query($sql);
 
@@ -567,7 +568,7 @@ class Longreads implements LongreadsInterface
      *
      * @return array JSON Decoded array
      */
-    public function fetchPagesList()
+    public function fetchPagesList():array
     {
         $request = 'getpageslist';
         $pages_list = [
