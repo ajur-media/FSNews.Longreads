@@ -18,8 +18,7 @@
         "ext-pdo": "*",
         "ext-json": "*",
         "ext-curl": "*",
-        "psr/log": "^1.1",
-        "karelwintersky/arris.helpers": ">=0.4.0"
+        "psr/log": "^1.1"
     },
     "suggest": {
         "curl/curl": "^2.3"

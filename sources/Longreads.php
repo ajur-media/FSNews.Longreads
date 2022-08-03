@@ -6,14 +6,11 @@
 
 namespace AJUR\FSNews;
 
-use Curl\Curl;
 use PDOException;
 use Psr\Log\NullLogger;
 use RuntimeException;
 use PDO;
 use Psr\Log\LoggerInterface;
-use Arris\Helpers\DB;
-use Arris\Helpers\FS;
 use stdClass;
 
 class Longreads implements LongreadsInterface
@@ -94,6 +91,11 @@ class Longreads implements LongreadsInterface
      */
     private $option_download_client;
 
+    /**
+     * @var bool
+     */
+    private $debug_write_raw_html;
+
     public function __construct(PDO $pdo, array $options = [], $logger = null)
     {
         $this->api_request_types = [
@@ -118,9 +120,11 @@ class Longreads implements LongreadsInterface
         $this->path_to_favicon = $options['path.favicon'] ?? '';
         $this->path_to_footer_template = $options['path.footer_template'] ?? '';
 
-        $this->option_cutoff_footer = $options['options.option_cutoff_footer'] ?? true;
-        $this->option_localize_media = $options['options.option_localize_media'] ?? true;
+        $this->option_cutoff_footer = (bool)($options['options.option_cutoff_footer'] ?? true);
+        $this->option_localize_media = (bool)($options['options.option_localize_media'] ?? true);
         $this->option_download_client = $options['options.download_client'] ?? 'native';
+
+        $this->debug_write_raw_html = (bool)($options['debug.write_raw_html'] ?? false);
 
         $this->sql_table = $options['sql.table'] ?? 'longreads';
 
@@ -257,7 +261,9 @@ class Longreads implements LongreadsInterface
 
             $html = $page->html;
 
-            file_put_contents("{$path_store}/index_raw.html", $html);
+            if ($this->debug_write_raw_html) {
+                file_put_contents("{$path_store}/index_raw.html", $html);
+            }
 
             // локализация favicon
             if ('' !== $this->path_to_favicon) {
@@ -282,8 +288,8 @@ class Longreads implements LongreadsInterface
             $html = str_replace('src="/www.youtube.com', 'src="//www.youtube.com', $html);
 
             if ($this->option_cutoff_footer) {
-                $html = str_replace(["\n", "\r"], "", $html);
-                $html = preg_replace('#<\!--/allrecords-->.*?$#ium', "<!--/allrecords-->\n", $html);
+                $html = substr($html, 0, strpos($html, '<!--/allrecords-->'));
+                $html .= '<!--/allrecords-->';
             }
 
             if ('' !== $this->path_to_footer_template) {
@@ -339,7 +345,7 @@ class Longreads implements LongreadsInterface
                     'folder'    =>  $folder
                 ];
 
-                $sql = DB::makeUpdateQuery($this->sql_table, $dataset, "`id` = {$id}");
+                $sql = LongreadsHelper::makeUpdateQuery($this->sql_table, $dataset, "`id` = {$id}");
 
             } else {
 
@@ -362,7 +368,7 @@ class Longreads implements LongreadsInterface
                     'filename'      =>  $page->filename
                 ];
 
-                $sql = DB::makeInsertQuery($this->sql_table, $dataset);
+                $sql = LongreadsHelper::makeInsertQuery($this->sql_table, $dataset);
             }
 
             $this->logger->debug('PDO SQL Query: ', [ str_replace("\r\n", "", $sql) ]);
@@ -380,7 +386,7 @@ class Longreads implements LongreadsInterface
             // очищаем папку от файлов
             // удаляем папку
             if ($is_directory_created) {
-                FS::rmdir($path_store);
+                LongreadsHelper::rmdir($path_store);
             }
             $this->logger->debug("Возникла ошибка при импорте лонгрида: ", [ $e->getMessage() ]);
 
@@ -430,11 +436,11 @@ class Longreads implements LongreadsInterface
             if ($count > 0) {
                 $state = 'update';
                 $this->logger->debug('Обновляем информацию о лонгриде в БД', [ $dataset['id'] ]);
-                $sql = DB::makeReplaceQuery($this->sql_table, $dataset);
+                $sql = LongreadsHelper::makeReplaceQuery($this->sql_table, $dataset);
             } else {
                 $state = 'ok';
                 $this->logger->debug('Добавляем информацию о лонгриде в БД', [ $dataset['id'] ]);
-                $sql = DB::makeInsertQuery($this->sql_table, $dataset);
+                $sql = LongreadsHelper::makeInsertQuery($this->sql_table, $dataset);
             }
 
             $this->logger->debug('PDO SQL Query: ', [ str_replace("\r\n", "", $sql) ]);
@@ -658,7 +664,7 @@ class Longreads implements LongreadsInterface
 
     private function downloadFile($from, $to)
     {
-        if ($this->option_download_client === 'curl') {
+        if ($this->option_download_client === 'curl' && class_exists('\Curl\Curl')) {
             return $this->downloadFileCurl($from, $to);
         } else {
             return $this->downloadFileNative($from, $to);
@@ -679,7 +685,7 @@ class Longreads implements LongreadsInterface
             throw new RuntimeException("Ошибка создания файла `{$to}`");
         }
 
-        $curl = new Curl();
+        $curl = new \Curl\Curl();
 
         $curl->setOpt(CURLOPT_FILE, $file_handle);
         $curl->get($from);
@@ -728,6 +734,8 @@ class Longreads implements LongreadsInterface
             ? "http://api.tildacdn.info/{$this->api_options['version']}/{$command}/"
             : "http://api.tildacdn.info/{$this->api_options['version']}/{$command}/?" . http_build_query( $http_request_query );
     }
+
+
 
 }
 

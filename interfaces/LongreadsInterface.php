@@ -8,6 +8,7 @@ namespace AJUR\FSNews;
 
 use PDO;
 use Psr\Log\LoggerInterface;
+use RuntimeException as RuntimeExceptionAlias;
 
 interface LongreadsInterface
 {
@@ -75,8 +76,9 @@ interface LongreadsInterface
      * @param $id
      * @param null $folder
      * @param string $import_mode
-     *
      * @return mixed
+     * @throws RuntimeExceptionAlias
+     *
      */
     public function import($id, $folder = null, string $import_mode = 'update');
     
