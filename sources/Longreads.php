@@ -622,13 +622,7 @@ class Longreads implements LongreadsInterface
         return $pages_list;
     }
 
-    /* ================================== PRIVATE METHODS ============================ */
-
-    /**
-     * @param $id
-     * @return stdClass
-     */
-    private function getPageFullExport($id)
+    public function getPageFullExport($id):stdClass
     {
         $http_request_query = [
             'publickey' =>  $this->api_options['public_key'],
@@ -661,6 +655,8 @@ class Longreads implements LongreadsInterface
             return new stdClass();
         }
     }
+
+    /* ================================== PRIVATE METHODS ============================ */
 
     private function downloadFile($from, $to)
     {

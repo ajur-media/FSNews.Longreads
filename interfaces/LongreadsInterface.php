@@ -9,6 +9,7 @@ namespace AJUR\FSNews;
 use PDO;
 use Psr\Log\LoggerInterface;
 use RuntimeException as RuntimeExceptionAlias;
+use stdClass;
 
 interface LongreadsInterface
 {
@@ -119,7 +120,14 @@ interface LongreadsInterface
      *
      */
     public function fetchPagesList(): array;
-    
+
+    /**
+     * Возвращает Json-decoded информацию о лонгриде
+     *
+     * @param $id
+     * @return stdClass
+     */
+    public function getPageFullExport($id):stdClass;
 }
 
 # -eof-
