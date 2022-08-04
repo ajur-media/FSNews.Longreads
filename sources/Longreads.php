@@ -622,7 +622,7 @@ class Longreads implements LongreadsInterface
         return $pages_list;
     }
 
-    public function getPageFullExport($id):stdClass
+    public function getPageFullExport($id, $associative = null)
     {
         $http_request_query = [
             'publickey' =>  $this->api_options['public_key'],
@@ -641,7 +641,7 @@ class Longreads implements LongreadsInterface
                 throw new RuntimeException( "[getPageFullExport] ERROR: Не удалось получить данные с Tilda API" );
             }
 
-            $response = json_decode($response);
+            $response = json_decode($response, $associative);
 
             if (false === $response) {
                 throw new RuntimeException( "[getPageFullExport] ERROR: Не удалось json-декодировать данные с Tilda API" );
@@ -652,7 +652,7 @@ class Longreads implements LongreadsInterface
         } catch (RuntimeException $e) {
             $this->logger->debug($e->getMessage(), [ $e->getCode(), $url ]);
 
-            return new stdClass();
+            return $associative ? [] : new stdClass();
         }
     }
 

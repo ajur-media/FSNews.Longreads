@@ -125,9 +125,10 @@ interface LongreadsInterface
      * Возвращает Json-decoded информацию о лонгриде
      *
      * @param $id
-     * @return stdClass
+     * @param null $associative (null|true)
+     * @return stdClass|array
      */
-    public function getPageFullExport($id):stdClass;
+    public function getPageFullExport($id, $associative = null);
 }
 
 # -eof-
