@@ -682,7 +682,11 @@ class Longreads implements LongreadsInterface
         } catch (RuntimeException $e) {
             $this->logger->debug($e->getMessage(), [ $e->getCode(), $url ]);
 
-            return $associative ? [] : new LongreadError($e->getMessage(), $curl->error_code, $url);
+            return $associative ? [
+                'status'    =>  'ERROR',
+                'message'   =>  $e->getMessage(),
+                'errorside' =>  'info'
+            ] : new LongreadError($e->getMessage(), $curl->error_code, $url);
         }
     }
 
