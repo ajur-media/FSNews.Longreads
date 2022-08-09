@@ -6,12 +6,12 @@
 
 namespace AJUR\FSNews;
 
+use Curl\Curl;
 use PDOException;
 use Psr\Log\NullLogger;
 use RuntimeException;
 use PDO;
 use Psr\Log\LoggerInterface;
-use stdClass;
 
 class Longreads implements LongreadsInterface
 {
@@ -96,6 +96,11 @@ class Longreads implements LongreadsInterface
      */
     private $debug_write_raw_html;
 
+    /**
+     * @var bool
+     */
+    private bool $throw_on_error;
+
     public function __construct(PDO $pdo, array $options = [], $logger = null)
     {
         $this->api_request_types = [
@@ -123,6 +128,8 @@ class Longreads implements LongreadsInterface
         $this->option_cutoff_footer = (bool)($options['options.option_cutoff_footer'] ?? true);
         $this->option_localize_media = (bool)($options['options.option_localize_media'] ?? true);
         $this->option_download_client = $options['options.download_client'] ?? 'native';
+
+        $this->throw_on_error = (bool)($options['throw.on.error'] ?? false);
 
         $this->debug_write_raw_html = (bool)($options['debug.write_raw_html'] ?? false);
 
@@ -166,13 +173,15 @@ class Longreads implements LongreadsInterface
 
         $sth = $this->pdo->query($sql);
 
-        return $sth->fetchAll();
+        $dataset = $sth->fetchAll();
+
+        return $dataset ?: [];
     }
 
-    public function getStoredByID($id = null)
+    public function getStoredByID($id = null):array
     {
         if ($id <= 0) {
-            return false;
+            return [];
         }
 
         $sql = "SELECT * FROM {$this->sql_table} WHERE id = :id ";
@@ -182,10 +191,12 @@ class Longreads implements LongreadsInterface
             'id'    =>  $id
         ]);
 
-        return $sth->fetch();
+        $dataset = $sth->fetch();
+
+        return $dataset ?: [];
     }
 
-    public function import($id, $folder = null, string $import_mode = 'update')
+    public function import($id, string $folder = '', string $import_mode = 'update')
     {
         $import_mode = in_array($import_mode, [ 'insert', 'update' ]) ? $import_mode : 'insert';
 
@@ -195,7 +206,7 @@ class Longreads implements LongreadsInterface
         if ($import_mode == 'update') {
             $this->logger->debug('Запрошено обновление лонгрида', [ $id, $folder ]);
         } else {
-            $this->logger->debug('Запрошен импорт лонгрида');
+            $this->logger->debug('Запрошен импорт лонгрида', [ $id ]);
         }
 
         try {
@@ -207,7 +218,7 @@ class Longreads implements LongreadsInterface
                 throw new RuntimeException('Не передан ID импортируемой страницы');
             }
 
-            if (is_null($folder)) {
+            if (empty($folder)) {
                 throw new RuntimeException('Не передана папка сохранения лонгрида');
             }
 
@@ -217,7 +228,7 @@ class Longreads implements LongreadsInterface
 
             $this->logger->debug("ID: {$id}, папка сохранения: `{$folder}`, режим импорта: `{$import_mode}`");
 
-            $path_store = $this->path_storage . DIRECTORY_SEPARATOR . $folder;
+            $path_store = rtrim($this->path_storage, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . ltrim($folder, DIRECTORY_SEPARATOR);
 
             $this->logger->debug("Путь для сохранения лонгрида", [ $path_store ]);
 
@@ -301,6 +312,10 @@ class Longreads implements LongreadsInterface
 
                 $footer = file_get_contents($this->path_to_footer_template);
 
+                if (false === $footer) {
+                    throw new RuntimeException("Ошибка чтения файла шаблона {$this->path_to_footer_template}");
+                }
+
                 $html .= str_replace('{$smarty.now|date_format:"%Y"}', date('Y'), $footer) . "\n";
             }
 
@@ -345,7 +360,7 @@ class Longreads implements LongreadsInterface
                     'folder'    =>  $folder
                 ];
 
-                $sql = LongreadsHelper::makeUpdateQuery($this->sql_table, $dataset, "`id` = {$id}");
+                $sql = self::makeUpdateQuery($this->sql_table, $dataset, "`id` = {$id}");
 
             } else {
 
@@ -368,7 +383,7 @@ class Longreads implements LongreadsInterface
                     'filename'      =>  $page->filename
                 ];
 
-                $sql = LongreadsHelper::makeInsertQuery($this->sql_table, $dataset);
+                $sql = self::makeInsertQuery($this->sql_table, $dataset);
             }
 
             $this->logger->debug('PDO SQL Query: ', [ str_replace("\r\n", "", $sql) ]);
@@ -386,7 +401,7 @@ class Longreads implements LongreadsInterface
             // очищаем папку от файлов
             // удаляем папку
             if ($is_directory_created) {
-                LongreadsHelper::rmdir($path_store);
+                self::rmdir($path_store);
             }
             $this->logger->debug("Возникла ошибка при импорте лонгрида: ", [ $e->getMessage() ]);
 
@@ -436,11 +451,11 @@ class Longreads implements LongreadsInterface
             if ($count > 0) {
                 $state = 'update';
                 $this->logger->debug('Обновляем информацию о лонгриде в БД', [ $dataset['id'] ]);
-                $sql = LongreadsHelper::makeReplaceQuery($this->sql_table, $dataset);
+                $sql = self::makeReplaceQuery($this->sql_table, $dataset);
             } else {
                 $state = 'ok';
                 $this->logger->debug('Добавляем информацию о лонгриде в БД', [ $dataset['id'] ]);
-                $sql = LongreadsHelper::makeInsertQuery($this->sql_table, $dataset);
+                $sql = self::makeInsertQuery($this->sql_table, $dataset);
             }
 
             $this->logger->debug('PDO SQL Query: ', [ str_replace("\r\n", "", $sql) ]);
@@ -487,7 +502,7 @@ class Longreads implements LongreadsInterface
                 throw new RuntimeException("Лонгрид с указанным идентификатором не найден в базе данных");
             }
 
-            $lr_folder = $this->path_storage . DIRECTORY_SEPARATOR . $longread['folder'] . DIRECTORY_SEPARATOR;
+            $lr_folder = rtrim($this->path_storage, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . trim($longread['folder'], DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
 
             if (!is_dir($lr_folder)) {
                 throw new RuntimeException('Директории с лонгридом не существует. Обратитесь к администратору!');
@@ -530,7 +545,7 @@ class Longreads implements LongreadsInterface
         return 'ok';
     } // delete()
 
-    public function itemToggleVisibility($id, $new_state = 'hide')
+    public function itemToggleVisibility($id, string $new_state = 'hide')
     {
         try {
             if (is_null($id) || $id <= 0) {
@@ -570,20 +585,19 @@ class Longreads implements LongreadsInterface
      * При преобразовании в JSON требуются опции
      * `JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE`
      *
-     * @todo: rename
-     *
      * @return array JSON Decoded array
      */
-    public function fetchPagesList():array
+    public function fetchPagesList($projects = []):array
     {
-        $request = 'getpageslist';
         $pages_list = [
             "status"    =>  "FOUND",
             "count"     =>  0,
             "result"    =>  []
         ];
 
-        foreach ($this->tilda_projects_list as $pid) {
+        $projects_list = !empty($projects) ? $projects : $this->tilda_projects_list;
+
+        foreach ($projects_list as $pid) {
             $pid_loaded_count = 0;
 
             $http_request_query = [
@@ -594,16 +608,27 @@ class Longreads implements LongreadsInterface
             $req_url = $this->makeApiURI('getpageslist', $http_request_query);
 
             $this->logger->debug("Запрашиваем список лонгридов в проекте ", [ $pid ]);
-
             $this->logger->debug("URL запроса: ", [ $req_url ]);
 
-            $response = json_decode(file_get_contents($req_url));
+            $curl = new Curl();
+            $curl->get($req_url);
+
+            $response = json_decode($curl->response); // JSON_UNESCAPED_UNICODE | JSON_INVALID_UTF8_SUBSTITUTE (работает для ассоциативного массива)
+
+            $curl->close();
+
+            if ($curl->error) {
+                $this->logger->debug("[Tilda.API] Ошибка получения данных", [ $response->message, $curl->error_message, $curl->error_code ]);
+                // throw new RuntimeException("[Tilda.API] Ошибка получения данных для проекта {$pid} : " . $response->message);
+            }
 
             $this->logger->debug('Статус ответа: ', [ $response->status ]);
 
+            $pages_list['pages'][ $pid ] = [];
             if ($response->status === "FOUND") {
                 foreach ($response->result as $page_info) {
                     $pages_list['result'][] = $page_info;
+                    $pages_list['pages'][ $pid ][] = $page_info->id;
                     $pid_loaded_count++;
                 }
             }
@@ -616,7 +641,7 @@ class Longreads implements LongreadsInterface
         $this->logger->debug("Всего получено информации о лонгридах: ", [ $pages_list['count'] ]);
 
         if ($pages_list['count'] == 0) {
-            $pages_list['status'] = "ERROR";
+            $pages_list['status'] = "NOT FOUND";
         }
 
         return $pages_list;
@@ -634,46 +659,45 @@ class Longreads implements LongreadsInterface
 
         $this->logger->debug('[getPageFullExport] URL запроса к тильде:', [ $url ]);
 
+        $curl = new Curl();
+
         try {
-            $response = file_get_contents($url);
+            $curl->get($url);
 
-            if (false === $response) {
-                throw new RuntimeException( "[getPageFullExport] ERROR: Не удалось получить данные с Tilda API" );
-            }
-
+            $response = $curl->response;
             $response = json_decode($response, $associative);
 
             if (false === $response) {
                 throw new RuntimeException( "[getPageFullExport] ERROR: Не удалось json-декодировать данные с Tilda API" );
             }
 
+            if ($curl->error) {
+                throw new RuntimeException( "[getPageFullExport] ERROR: Не удалось получить данные с Tilda API:  " . ($associative ? $response['message'] : $response->message) );
+            }
+
+            $curl->close();
+
             return $response;
 
         } catch (RuntimeException $e) {
             $this->logger->debug($e->getMessage(), [ $e->getCode(), $url ]);
 
-            return $associative ? [] : new stdClass();
+            return $associative ? [] : new LongreadError($e->getMessage(), $curl->error_code, $url);
         }
     }
 
+    /* =============================================================================== */
     /* ================================== PRIVATE METHODS ============================ */
-
-    private function downloadFile($from, $to)
-    {
-        if ($this->option_download_client === 'curl' && class_exists('\Curl\Curl')) {
-            return $this->downloadFileCurl($from, $to);
-        } else {
-            return $this->downloadFileNative($from, $to);
-        }
-    }
+    /* =============================================================================== */
 
     /**
-     * @param $from
-     * @param $to
+     * Скачивает CURL-ом файл с URL по указанному пути
+     *
+     * @param string $from
+     * @param string $to
      * @return bool
-     * @throws RuntimeException
      */
-    private function downloadFileCurl($from, $to): bool
+    private function downloadFile(string $from, string $to): bool
     {
         $file_handle = fopen($to, 'w+');
 
@@ -681,7 +705,7 @@ class Longreads implements LongreadsInterface
             throw new RuntimeException("Ошибка создания файла `{$to}`");
         }
 
-        $curl = new \Curl\Curl();
+        $curl = new Curl();
 
         $curl->setOpt(CURLOPT_FILE, $file_handle);
         $curl->get($from);
@@ -693,28 +717,9 @@ class Longreads implements LongreadsInterface
             throw new RuntimeException("Ошибка скачивания файла {$from} " . $curl->error_message);
         }
 
+        $curl->close();
+
         return !($curl->error);
-    }
-
-    /**
-     * @param $from
-     * @param $to
-     * @return bool
-     * @throws RuntimeException
-     */
-    private function downloadFileNative($from, $to)
-    {
-        $content = file_get_contents($from);
-
-        if (!$content) {
-            throw new RuntimeException("Ошибка получения файла {$from}");
-        }
-
-        if (!file_put_contents($to, $content)) {
-            throw new RuntimeException("Ошибка сохранения файла `{$to}`");
-        }
-
-        return true;
     }
 
     /**
@@ -722,16 +727,154 @@ class Longreads implements LongreadsInterface
      *
      * @param string $command
      * @param array $http_request_query
+     * @param bool $is_https
      * @return string
      */
-    private function makeApiURI(string $command, array $http_request_query)
+    private function makeApiURI(string $command, array $http_request_query, bool $is_https = false): string
     {
+        $scheme = $is_https ? 'https://' : 'http://';
+
         return empty($http_request_query)
-            ? "http://api.tildacdn.info/{$this->api_options['version']}/{$command}/"
-            : "http://api.tildacdn.info/{$this->api_options['version']}/{$command}/?" . http_build_query( $http_request_query );
+            ? "{$scheme}api.tildacdn.info/{$this->api_options['version']}/{$command}/"
+            : "{$scheme}api.tildacdn.info/{$this->api_options['version']}/{$command}/?" . http_build_query( $http_request_query );
     }
 
+    /**
+     * Recursive rmdir
+     *
+     * @param $directory
+     * @return bool
+     */
+    private static function rmdir($directory): bool
+    {
+        if (!\is_dir( $directory )) {
+            return false;
+        }
 
+        $files = \array_diff( \scandir( $directory ), [ '.', '..' ] );
+
+        foreach ($files as $file) {
+            $target = "{$directory}/{$file}";
+            (\is_dir( $target ))
+                ? self::rmdir( $target )
+                : \unlink( $target );
+        }
+        return \rmdir( $directory );
+    }
+
+    /**
+     * Строит запрос REPLACE <table> SET ...
+     *
+     * @param string $table
+     * @param array $dataset
+     * @param string $where
+     * @return false|string
+     */
+    private static function makeReplaceQuery(string $table, array &$dataset, string $where = '')
+    {
+        $fields = [];
+
+        if (empty($dataset)) {
+            return false;
+        }
+
+        $query = "REPLACE `{$table}` SET ";
+
+        foreach ($dataset as $index => $value) {
+            if (\strtoupper(\trim($value)) === 'NOW()') {
+                $fields[] = "`{$index}` = NOW()";
+                unset($dataset[ $index ]);
+                continue;
+            }
+
+            $fields[] = "`{$index}` = :{$index}";
+        }
+
+        $query .= \implode(', ', $fields);
+
+        $query .= " {$where}; ";
+
+        return $query;
+    }
+
+    /**
+     * Строит запрос INSERT INTO table
+     *
+     * @param string $table
+     * @param $dataset
+     * @return string
+     */
+    private static function makeInsertQuery(string $table, &$dataset):string
+    {
+        if (empty($dataset)) {
+            return "INSERT INTO {$table} () VALUES (); ";
+        }
+
+        $set = [];
+
+        $query = "INSERT INTO `{$table}` SET ";
+
+        foreach ($dataset as $index => $value) {
+            if (\strtoupper(\trim($value)) === 'NOW()') {
+                $set[] = "`{$index}` = NOW()";
+                unset($dataset[ $index ]);
+                continue;
+            }
+
+            $set[] = "`{$index}` = :{$index}";
+        }
+
+        $query .= \implode(', ', $set) . ' ;';
+
+        return $query;
+    }
+
+    /**
+     * Строит запрос UPDATE table SET
+     *
+     * @param string $table
+     * @param $dataset
+     * @param $where_condition
+     * @return string
+     */
+    private static function makeUpdateQuery(string $table, &$dataset, $where_condition):string
+    {
+        $set = [];
+
+        if (empty($dataset)) {
+            return false;
+        }
+
+        $query = "UPDATE `{$table}` SET";
+
+        foreach ($dataset as $index => $value) {
+            if (\strtoupper(\trim($value)) === 'NOW()') {
+                $set[] = "`{$index}` = NOW()";
+                unset($dataset[ $index ]);
+                continue;
+            }
+
+            $set[] = "`{$index}` = :{$index}";
+        }
+
+        $query .= \implode(', ', $set);
+
+        if (\is_array($where_condition)) {
+            $where_condition = \key($where_condition) . ' = ' . \current($where_condition);
+        }
+
+        if ( \is_string($where_condition ) && !\strpos($where_condition, 'WHERE')) {
+            $where_condition = " WHERE {$where_condition}";
+        }
+
+        if (\is_null($where_condition)) {
+            $where_condition = '';
+        }
+
+        $query .= " $where_condition ;";
+
+        return $query;
+    }
 
 }
 

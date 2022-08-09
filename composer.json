@@ -18,10 +18,8 @@
         "ext-pdo": "*",
         "ext-json": "*",
         "ext-curl": "*",
-        "psr/log": "^1.1"
-    },
-    "suggest": {
-        "curl/curl": "^2.3"
+        "psr/log": "^1.1",
+        "curl/curl": "^2.3.0"
     },
     "autoload": {
         "psr-4": {

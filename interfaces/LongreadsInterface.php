@@ -67,21 +67,20 @@ interface LongreadsInterface
      * @todo: rename
      *
      * @param $id
-     * @return bool|mixed
+     * @return array - вернет пустой массив если лонгрида нет (или
      */
     public function getStoredByID($id = null);
-    
+
     /**
      * Импортировать лонгрид по идентификатору
      *
      * @param $id
-     * @param null $folder
+     * @param string $folder
      * @param string $import_mode
      * @return mixed
      * @throws RuntimeExceptionAlias
-     *
      */
-    public function import($id, $folder = null, string $import_mode = 'update');
+    public function import($id, string $folder = '', string $import_mode = 'update');
     
     /**
      * Добавляем информацию о лонгриде в БД
@@ -103,13 +102,13 @@ interface LongreadsInterface
     
     /**
      * Изменить настройки видимости лонгрида
-     * @todo: rename
-     *
      * @param $id
      * @param string $new_state
      * @return string
+     * @todo: rename
+     *
      */
-    public function itemToggleVisibility($id, $new_state = 'hide');
+    public function itemToggleVisibility($id, string $new_state = 'hide');
 
     /**
      * Возвращает список опубликованных лонгридов на Тильде
@@ -119,10 +118,16 @@ interface LongreadsInterface
      * @todo: rename
      *
      */
-    public function fetchPagesList(): array;
+    public function fetchPagesList($projects = []): array;
 
     /**
-     * Возвращает Json-decoded информацию о лонгриде
+     * Возвращает Json-decoded информацию о лонгриде.
+     *
+     * Структура содержит два поля:
+     * - status - FOUND|ERROR
+     * - result - информация о лонгриде:
+     *  - id, projectid, title, descr, img, featureimg, alias, date, sort, published, project_domain итд
+     *
      *
      * @param $id
      * @param null $associative (null|true)
