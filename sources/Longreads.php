@@ -685,8 +685,11 @@ class Longreads implements LongreadsInterface
             return $associative ? [
                 'status'    =>  'ERROR',
                 'message'   =>  $e->getMessage(),
+                'result'    =>  [
+                    'id'        =>  $id
+                ],
                 'errorside' =>  'info'
-            ] : new LongreadError($e->getMessage(), $curl->error_code, $url);
+            ] : new LongreadError($e->getMessage(), $curl->error_code, $url, $id);
         }
     }
 

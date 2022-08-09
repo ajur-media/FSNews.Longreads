@@ -6,7 +6,7 @@ class LongreadError
 {
     public string $status = 'ERROR';
 
-    public string $result = '';
+    public $result;
 
     public bool $error = true;
 
@@ -22,10 +22,12 @@ class LongreadError
      */
     public string $url;
 
-    public function __construct($error_message = '', $error_code = 0, $url = '')
+    public function __construct($error_message = '', $error_code = 0, $url = '', $id = 0)
     {
         $this->error_message = $error_message;
         $this->error_code = $error_code;
         $this->url = $url;
+        $this->result = new \stdClass();
+        $this->result->id = $id;
     }
 }
