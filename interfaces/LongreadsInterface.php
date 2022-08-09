@@ -1,7 +1,7 @@
 <?php
 
 /**
- * Longreads Unit Interface for Steamboat Engine
+ * Longreads Unit Interface for FSNews Engine
  */
 
 namespace AJUR\FSNews;
@@ -112,13 +112,12 @@ interface LongreadsInterface
 
     /**
      * Возвращает список опубликованных лонгридов на Тильде
-     * @param null $associative
+     * @param array $projects
      * @return array
      *
      * @todo: rename
-     *
      */
-    public function fetchPagesList($projects = []): array;
+    public function fetchPagesList(array $projects = []): array;
 
     /**
      * Возвращает Json-decoded информацию о лонгриде.

@@ -171,9 +171,13 @@ class Longreads implements LongreadsInterface
 
         $sql = vsprintf("SELECT * FROM %s ORDER BY status %s, date %s", [ $this->sql_table, $order_status, $order_date ]);
 
+        $this->logger->debug("Запрошен полный список лонгридов из БД: ", [ $sql ]);
+
         $sth = $this->pdo->query($sql);
 
         $dataset = $sth->fetchAll();
+
+        $this->logger->debug(vsprintf("Датасет содержит %s элемент(ов)", [ is_array($dataset) ? count($dataset) : 0 ]));
 
         return $dataset ?: [];
     }
@@ -186,12 +190,16 @@ class Longreads implements LongreadsInterface
 
         $sql = "SELECT * FROM {$this->sql_table} WHERE id = :id ";
 
+        $this->logger->debug("Запрошен сохраненный лонгрид по ID: ", [ $id ]);
+
         $sth = $this->pdo->prepare($sql);
         $sth->execute([
             'id'    =>  $id
         ]);
 
         $dataset = $sth->fetch();
+
+        $this->logger->debug("Результат извлечения данных по лонгриду: ", [ is_array($dataset) ? 'OK' : 'ERROR' ]);
 
         return $dataset ?: [];
     }
@@ -587,7 +595,7 @@ class Longreads implements LongreadsInterface
      *
      * @return array JSON Decoded array
      */
-    public function fetchPagesList($projects = []):array
+    public function fetchPagesList(array $projects = []):array
     {
         $pages_list = [
             "status"    =>  "FOUND",
