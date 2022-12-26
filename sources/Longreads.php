@@ -101,7 +101,7 @@ class Longreads implements LongreadsInterface
      */
     private bool $throw_on_error;
 
-    public function __construct(PDO $pdo, array $options = [], $logger = null)
+    public function __construct($pdo, array $options = [], LoggerInterface $logger = null)
     {
         $this->api_request_types = [
             'getprojectslist'   => '',          // Список проектов
