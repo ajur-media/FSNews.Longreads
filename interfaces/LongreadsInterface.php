@@ -17,11 +17,11 @@ interface LongreadsInterface
     /**
      * Longreads constructor
      *
-     * @param PDO $pdo
+     * @param $pdo
      * @param array $options
      * @param LoggerInterface|null $logger
      */
-    public function __construct(PDO $pdo, array $options = [], $logger = null);
+    public function __construct($pdo, array $options = [], LoggerInterface $logger = null);
     
     /**
      * Getter
