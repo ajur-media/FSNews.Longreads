@@ -2,30 +2,38 @@
  * jQuery required
  */
 $(function () {
-    // Шаблон строки для новой страницы
-    let template_pagerow = '\
-            <tr id="row-%id%" data-status="0" data-id="%id%" class="new">\
-                <td align="center">%projectid%</td>\
-                <td align="center" class="date">%date%<span class="change"></span></td>\
-                <td>\
-                    <p class="pagetitle">%title%</p>\
-                    <p class="description">%descr%</p>\
-                </td>\
-                <td class="buttons">\
-                    <button data-id="%id%" class="pull-right update" style="display: none;">Обновить</button>\
-                    <button data-id="%id%" class="pull-right delete"  style="display: none;">Удалить</button>\
-                    <button data-id="%id%" class="pull-right toshow"  style="display: none;">Вернуть</button>\
-                    <button data-id="%id%" class="pull-right import"  style="display: block;">Импорт</button>\
-                    <button data-id="%id%" class="pull-right tohide"  style="display: block;">Скрыть</button>\
-                    <div class="import-block" style="display: none;">\
-                        <button data-id="%id%" class="cancel">Отмена</button>\
-                        <button data-id="%id%" class="start">Начать импорт</button>\
-                        <input class="folder" type="text" value="" placeholder="URL по которому будет доступен лонгрид">\
-                    </div>\
-                </td>\
-            </tr>';
+    window.longreads = window.longreads || [];
 
-    /* =========== ФУНКЦИИ ============ */
+    let URLS = {
+        IMPORT: '/longreads/import/',
+        DELETE: '/longreads/delete/',
+        TOGGLE: '/longreads/page_toggle/',
+        ADD:    '/longreads/page_add/',
+        GET_PAGES_LIST: '/longreads/get_tilda_pages_list/',
+    };
+    // Шаблон строки для новой страницы
+    let template_pagerow = `
+        <tr id="row-%id%" data-status="0" data-id="%id%" class="new">
+            <td align="center">%projectid%</td>
+            <td align="center" class="date">%date%<span class="change"></span></td>
+            <td>
+                <p class="pagetitle">%title%</p>
+                <p class="description">%descr%</p>
+            </td>
+            <td class="buttons">
+                <button data-id="%id%" class="pull-right update" style="display: none;">Обновить</button>
+                <button data-id="%id%" class="pull-right delete"  style="display: none;">Удалить</button>
+                <button data-id="%id%" class="pull-right toshow"  style="display: none;">Вернуть</button>
+                <button data-id="%id%" class="pull-right import"  style="display: block;">Импорт</button>
+                <button data-id="%id%" class="pull-right tohide"  style="display: block;">Скрыть</button>
+                <div class="import-block" style="display: none;">
+                    <button data-id="%id%" class="cancel">Отмена</button>
+                    <button data-id="%id%" class="start">Начать импорт</button>
+                    <input class="folder" type="text" value="" placeholder="URL по которому будет доступен лонгрид">
+                </div>
+            </td>
+        </tr>
+    `;
 
     /**
      * Удалить страницу
@@ -34,7 +42,7 @@ $(function () {
      */
     function page_delete(id) {
         disable_buttons();
-        $.post('/longreads/delete/', {
+        $.post(URLS.DELETE, {
             id: id
         }, function (response) {
             if (response === 'ok') {
@@ -55,7 +63,7 @@ $(function () {
      */
     function page_toggle(id, toggle) {
         disable_buttons();
-        $.post('/longreads/page_toggle/', {
+        $.post(URLS.TOGGLE, {
             id: id,
             toggle: toggle
         }, function (response) {
@@ -110,7 +118,7 @@ $(function () {
     function page_import(id, folder, update = false) {
         message('Идет импорт страницы...');
         disable_buttons();
-        $.post('/longreads/import/', {
+        $.post(URLS.IMPORT, {
             id: id,
             folder: folder, update: update
         }).complete(function (response) {
@@ -215,7 +223,7 @@ $(function () {
         message('Идет получение страниц по Tilda API...');
         disable_buttons();
 
-        $.post('/longreads/get_tilda_pages_list/', { }, function (data) {
+        $.post(URLS.GET_PAGES_LIST, { }, function (data) {
 
             // Если ответ от Tilda не получен
             if (data.status !== 'FOUND' || !data.result) {
@@ -253,7 +261,7 @@ $(function () {
 
                     // добавляем запись о лонгриде в базу
                     complete = false;
-                    $.post('/longreads/page_add/', {
+                    $.post(URLS.ADD, {
                         page: page
                     }, function (response) {
                         if (response === 'ok') {

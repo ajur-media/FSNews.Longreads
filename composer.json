@@ -15,11 +15,12 @@
         "platform-check": false
     },
     "require": {
+        "php": "^7.4 | 8.*",
         "ext-pdo": "*",
         "ext-json": "*",
         "ext-curl": "*",
-        "psr/log": "^1.1",
-        "curl/curl": "^2.3.0"
+        "psr/log": "*",
+        "curl/curl": "^2"
     },
     "autoload": {
         "psr-4": {
@@ -37,5 +38,8 @@
                 "target": "admin/longreads.tpl"
             }
         ]
+    },
+    "require-dev": {
+        "rector/rector": "^1.2"
     }
 }

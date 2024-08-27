@@ -71,11 +71,11 @@
         {$longread.id}: '{$longread.date}',
         {/foreach}
     };
-    let showhidden = false;
+    window.showhidden = false;
     let tildapages;
 </script>
 <script type="text/javascript" src="/frontend/js/admin/longreads.js"></script>
-<style type="text/css">
+<style>
     .longreads_action {
         display: block;
         padding: 1px 8px;

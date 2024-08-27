@@ -1,25 +1,20 @@
 <?php
 
 /**
- * Longreads UNIT for Steamboat Engine
+ * Longreads UNIT for FSNews Engine
  */
 
 namespace AJUR\FSNews;
 
 use Curl\Curl;
+use PDO;
 use PDOException;
 use Psr\Log\NullLogger;
-use RuntimeException;
-use PDO;
 use Psr\Log\LoggerInterface;
+use RuntimeException;
 
 class Longreads implements LongreadsInterface
 {
-    /**
-     * @var PDO
-     */
-    private $pdo;
-
     /**
      * Логгер
      *
@@ -71,7 +66,7 @@ class Longreads implements LongreadsInterface
     private $sql_table;
 
     /**
-     * Опция "отрезать ли футер чтобы вставить на его место счетчики из шаблона?" (true)
+     * Опция "отрезать ли футер, чтобы вставить на его место счетчики из шаблона?" (true)
      *
      * @var bool|mixed
      */
@@ -101,8 +96,15 @@ class Longreads implements LongreadsInterface
      */
     private bool $throw_on_error;
 
+    /**
+     * @var mixed|PDO
+     */
+    private $pdo;
+
     public function __construct($pdo, array $options = [], LoggerInterface $logger = null)
     {
+        $this->pdo = $pdo;
+
         $this->api_request_types = [
             'getprojectslist'   => '',          // Список проектов
             'getproject'        => 'projectid', // Информация о проекте
@@ -113,8 +115,6 @@ class Longreads implements LongreadsInterface
             'getpageexport'     => 'pageid',    // Информация о странице для экспорта (+ body html-code)
             'getpagefullexport' => 'pageid',    // Информация о странице для экспорта (+ fullpage html-code)
         ];
-
-        $this->pdo = $pdo;
         $this->logger = is_null($logger) ? new NullLogger() : $logger;
 
         $this->api_options['version'] = $options['api.version'] ?? 'v1';
@@ -138,13 +138,15 @@ class Longreads implements LongreadsInterface
         if (is_array($options['projects'])) {
             $this->tilda_projects_list = $options['projects'];
         } elseif (is_string($options['projects'])) {
-            $this->tilda_projects_list = array_map(static function ($i) { return (int)$i; }, explode(' ', $options['projects']));
+            $this->tilda_projects_list = array_map(function ($i) { return (int)$i; }, explode(' ', $options['projects']));
         }
     }
 
     public function __get($name)
     {
-        if ($this->{$name}) return $this->{$name};
+        if ($this->{$name}) {
+            return $this->{$name};
+        }
 
         return null;
     }
@@ -188,7 +190,7 @@ class Longreads implements LongreadsInterface
             return [];
         }
 
-        $sql = "SELECT * FROM {$this->sql_table} WHERE id = :id ";
+        $sql = vsprintf("SELECT * FROM %s WHERE id = :id", [ $this->sql_table ]);
 
         $this->logger->debug("Запрошен сохраненный лонгрид по ID: ", [ $id ]);
 
@@ -313,7 +315,7 @@ class Longreads implements LongreadsInterface
 
             if ('' !== $this->path_to_footer_template) {
                 $html = str_replace([ '</body>', '</html>' ], '', $html);
-                
+
                 if (!is_readable($this->path_to_footer_template)) {
                     throw new RuntimeException("Файл шаблона-футера нечитаем или отсутствует");
                 }
@@ -354,7 +356,7 @@ class Longreads implements LongreadsInterface
             } // foreach
 
             // теперь проверяем, существует ли в базе импортированных лонгридов такая запись
-            $sql = "SELECT COUNT(*) AS cnt FROM `{$this->sql_table}` WHERE `id` = :id";
+            $sql = vsprintf("SELECT COUNT(*) AS cnt FROM %s WHERE id = :id", [ $this->sql_table ]);
             $sth = $this->pdo->prepare($sql);
             $sth->execute(['id'        =>  $id]);
 
@@ -452,7 +454,8 @@ class Longreads implements LongreadsInterface
             }
 
             // проверим существование
-            $sth = $this->pdo->prepare("SELECT COUNT(*) FROM {$this->sql_table} WHERE id = :id ");
+            $sql = vsprintf("SELECT COUNT(*) FROM %s WHERE id = :id", [ $this->sql_table ]);
+            $sth = $this->pdo->prepare($sql);
             $sth->execute(['id' => $dataset['id']]);
             $count = $sth->fetchColumn();
 
@@ -500,7 +503,8 @@ class Longreads implements LongreadsInterface
 
             $this->logger->debug("Начинаем удаление лонгрида с ID: ", [ $id ]);
 
-            $sth = $this->pdo->prepare("SELECT * FROM {$this->sql_table} WHERE id = :id");
+            $sql = vsprintf("SELECT * FROM %s WHERE id = :id", [ $this->sql_table ]);
+            $sth = $this->pdo->prepare($sql);
             $sth->execute([
                 'id'    =>  $id
             ]);
@@ -510,7 +514,7 @@ class Longreads implements LongreadsInterface
                 throw new RuntimeException("Лонгрид с указанным идентификатором не найден в базе данных");
             }
 
-            $lr_folder = rtrim($this->path_storage, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . trim($longread['folder'], DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
+            $lr_folder = rtrim($this->path_storage, DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . trim((string) $longread['folder'], DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR;
 
             if (!is_dir($lr_folder)) {
                 throw new RuntimeException('Директории с лонгридом не существует. Обратитесь к администратору!');
@@ -536,7 +540,7 @@ class Longreads implements LongreadsInterface
             }
 
             // удаляем запись из базы
-            $sth = $this->pdo->prepare("DELETE FROM {$this->sql_table} WHERE id = :id");
+            $sth = $this->pdo->prepare(vsprintf("DELETE FROM %s WHERE id = :id", [ $this->sql_table ]));
 
             if (false === $sth->execute([ 'id' => $id])) {
                 throw new RuntimeException("Не удалось удалить лонгрид из базы данных, код лонгрида: {$id}");
@@ -565,7 +569,8 @@ class Longreads implements LongreadsInterface
             $new_state = in_array($new_state, [ 'hide', 'show' ]) ? $new_state : 'hide';
             $new_state = ($new_state === 'hide') ? -1 : 0;
 
-            $sth = $this->pdo->prepare("UPDATE `longreads` SET `status` = :status WHERE `id` = :id ");
+            $sql = vsprintf("UPDATE %s SET status = :status WHERE id = :id", [ $this->sql_table ]);
+            $sth = $this->pdo->prepare($sql);
             $sth->execute([
                 'status'    =>  $new_state,
                 'id'        =>  $id
@@ -796,7 +801,7 @@ class Longreads implements LongreadsInterface
         $query = "REPLACE `{$table}` SET ";
 
         foreach ($dataset as $index => $value) {
-            if (\strtoupper(\trim($value)) === 'NOW()') {
+            if (\strtoupper(\trim((string) $value)) === 'NOW()') {
                 $fields[] = "`{$index}` = NOW()";
                 unset($dataset[ $index ]);
                 continue;
@@ -827,10 +832,10 @@ class Longreads implements LongreadsInterface
 
         $set = [];
 
-        $query = "INSERT INTO `{$table}` SET ";
+        $query = "INSERT INTO {$table} SET ";
 
         foreach ($dataset as $index => $value) {
-            if (\strtoupper(\trim($value)) === 'NOW()') {
+            if (\strtoupper(\trim((string) $value)) === 'NOW()') {
                 $set[] = "`{$index}` = NOW()";
                 unset($dataset[ $index ]);
                 continue;
@@ -863,7 +868,7 @@ class Longreads implements LongreadsInterface
         $query = "UPDATE `{$table}` SET";
 
         foreach ($dataset as $index => $value) {
-            if (\strtoupper(\trim($value)) === 'NOW()') {
+            if (\strtoupper(\trim((string) $value)) === 'NOW()') {
                 $set[] = "`{$index}` = NOW()";
                 unset($dataset[ $index ]);
                 continue;

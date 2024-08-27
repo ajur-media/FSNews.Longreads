@@ -18,7 +18,8 @@ class LongreadError
     public int $error_code;
 
     /**
-     * @var string
+     * @param int $error_code
+     * @param string $url
      */
     public string $url;
 
